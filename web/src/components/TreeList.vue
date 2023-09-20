@@ -21,9 +21,24 @@ type Link = {
 };
 
 const buildTree = (list: Link[]) => {
+  // 先排序， 这样就可以根据 reduce 顺序处理三级目录
+  // 1. 根目录在最前 M1,M2
+  // 2. 二级目录紧随其后 M1/S01, M1/S02
+  // 3. 三级就是文件了
+  list.sort((a, b) => a.parent && b.parent ?  a.value.split('/').length - b.value.split('/').length : 1)
+
+  const mapping = list.reduce((m, node, index) => {
+    m[node.value] = { node, index };
+    return m
+  }, {})
   const tree = list.reduce((t, node) => {
-    return t
-  })
+    if (node.parent === '') {
+    } else {
+    }
+
+    return t;
+
+  }, [])
 
 }
 type RowData = {
