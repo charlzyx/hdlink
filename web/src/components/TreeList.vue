@@ -13,12 +13,19 @@ import type { DataTableColumns } from "naive-ui";
 
 type Link = {
   id: number;
-  type: "src" | "dest";
-  dir: boolean;
-  link: number;
   parent: string;
   value: string;
+  type: "src" | "dest";
+  dir: boolean;
+  link: string;
 };
+
+const buildTree = (list: Link[]) => {
+  const tree = list.reduce((t, node) => {
+    return t
+  })
+
+}
 type RowData = {
   from: string;
   to: string;
