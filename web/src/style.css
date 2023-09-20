@@ -38,5 +38,8 @@ a:hover {
     color: #213546;
     background-color: #ffffff;
   }
+}
 
+body {
+  padding: 2rem;
 }

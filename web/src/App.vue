@@ -1,11 +1,17 @@
 <script setup>
-import HelloWorld from './components/HelloWorld.vue'
+import Home from "./pages/Home.vue";
 </script>
 
 <template>
-  <n-message-provider>
-    <HelloWorld />
-  </n-message-provider>
+  <n-config-provider>
+    <n-message-provider>
+      <n-dialog-provider>
+        <n-notification-provider>
+          <router-view></router-view>
+        </n-notification-provider>
+      </n-dialog-provider>
+    </n-message-provider>
+  </n-config-provider>
 </template>
 
 <style scoped>
