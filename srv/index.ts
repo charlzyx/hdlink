@@ -1,4 +1,8 @@
+import { init } from "./db";
 import { matcher } from "./route";
+
+init();
+
 Bun.serve({
   fetch(req) {
     const url = new URL(req.url);
