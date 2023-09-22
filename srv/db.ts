@@ -9,11 +9,9 @@ export const init = () => {
   db.run(
     `
   CREATE TABLE IF NOT EXISTS src (
-    value TEXT PRIMARY KEY,  -- '文件/目录路径'
-    dir BOOLEAN,  -- '是否是目录'
-    link TEXT,  -- '链接文件/目录路径'
-    parent TEXT,  -- '父级目录'
-    missing BOOLEAN  -- '是否已失效'
+    value TEXT PRIMARY KEY,  -- 文件/目录路径
+    dir BOOLEAN,  -- 是否是目录
+    parent TEXT  -- 父级目录
   );`
   );
 
@@ -21,18 +19,24 @@ export const init = () => {
     `
   CREATE TABLE IF NOT EXISTS dest (
     value TEXT PRIMARY KEY,  -- '文件/目录路径'
-    dir BOOLEAN,  -- '是否是目录'
-    link TEXT,  -- '链接文件/目录路径'
-    parent TEXT,  -- '父级目录'
-    missing BOOLEAN  -- '是否已失效'
+    dir BOOLEAN,  -- 是否是目录
+    parent TEXT  -- 父级目录
   );`
   );
 
   db.run(
     `
   CREATE TABLE IF NOT EXISTS conf (
-    srcroot TEXT,  -- '源目录根'
-    destroot TEXT  -- '目标目录根
+    srcroot TEXT,  -- 源目录根
+    destroot TEXT  -- 目标目录根
+  );`
+  );
+
+  db.run(
+    `
+  CREATE TABLE IF NOT EXISTS dlink (
+    src TEXT,  -- 源路径
+    dest TEXT  -- 目标路径
   );`
   );
 };
