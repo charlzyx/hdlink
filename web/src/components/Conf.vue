@@ -1,20 +1,12 @@
 <template>
   <n-space justify="end">
-    <n-input-group>
+    <n-input-group class="winput">
       <n-input-group-label>源目录根</n-input-group-label>
-      <n-input
-        class="winput"
-        v-model:value="data.srcroot"
-        placeholder="源目录根"
-      ></n-input>
+      <n-input v-model:value="data.srcroot" placeholder="源目录根"></n-input>
     </n-input-group>
-    <n-input-group>
+    <n-input-group class="winput">
       <n-input-group-label>目标目录根</n-input-group-label>
-      <n-input
-        class="winput"
-        v-model:value="data.destroot"
-        placeholder="目标目录根"
-      ></n-input>
+      <n-input v-model:value="data.destroot" placeholder="目标目录根"></n-input>
     </n-input-group>
     <n-button @click="save">保存</n-button>
     <n-button @click="sync"> 同步</n-button>
@@ -31,14 +23,14 @@ onMounted(() => {
   fetch("/api/conf", { method: "get" })
     .then((r) => r.json())
     .then((resp) => {
-      console.log("resp", resp);
+      // console.log("resp", resp);
       data.value = resp.data || {};
-      console.log("data.value", JSON.stringify(data.value, null, 2));
+      // console.log("data.value", JSON.stringify(data.value, null, 2));
     });
 });
 
 const save = () => {
-  console.log("data.value", data.value);
+  // console.log("data.value", data.value);
   fetch("/api/conf", { method: "post", body: JSON.stringify(data.value) }).then(
     () => {
       message.success("保存成功");

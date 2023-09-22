@@ -28,7 +28,8 @@ export const init = () => {
     `
   CREATE TABLE IF NOT EXISTS conf (
     srcroot TEXT,  -- 源目录根
-    destroot TEXT  -- 目标目录根
+    destroot TEXT,  -- 目标目录根
+    PRIMARY KEY (srcroot, destroot)
   );`
   );
 
@@ -36,7 +37,19 @@ export const init = () => {
     `
   CREATE TABLE IF NOT EXISTS dlink (
     src TEXT,  -- 源路径
-    dest TEXT  -- 目标路径
+    dest TEXT,  -- 目标路径
+    PRIMARY KEY (src, dest)
+  );`
+  );
+
+  db.run(
+    `
+  CREATE TABLE IF NOT EXISTS rule (
+    src TEXT,
+    dest TEXT,
+    input TEXT,  -- 输入正则
+    output TEXT,  -- 输出正则
+    PRIMARY KEY (src, dest)
   );`
   );
 };

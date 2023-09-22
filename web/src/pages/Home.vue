@@ -10,9 +10,7 @@
   <tree-list></tree-list>
 </template>
 <script setup>
-import { useMessage } from "naive-ui";
 import { onMounted } from "vue";
-import { useRouter } from "vue-router";
 import Conf from "../components/Conf.vue";
 import TreeList from "../components/TreeList.vue";
 

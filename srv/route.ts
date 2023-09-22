@@ -11,18 +11,27 @@ type Link = {
 const tree = (root: string, parent: string, list: Link[] = []) => {
   if (!fs.existsSync(parent)) return [];
   const subs = fs.readdirSync(parent);
+  // 合并单个文件夹
+  if (subs.length == 1) {
+    const parent = list[list.length - 1];
+    list[list.length - 1] = {
+      ...parent,
+      value: parent.value + subs[0],
+    };
+    return list;
+  }
   subs.forEach((sub) => {
     const abs = path.join(parent, sub);
-    const isDir = fs.statSync(abs).isDirectory();
-    if (fs.existsSync(abs) && isDir) {
-      tree(root, abs, list);
-    }
-
+    const isExist = fs.existsSync(abs);
+    const isDir = isExist || fs.statSync(abs).isDirectory();
     list.push({
       parent: parent.replace(root, ""),
       value: abs.replace(root, ""),
       dir: isDir,
     });
+    if (isExist && isDir) {
+      tree(root, abs, list);
+    }
   });
   return list;
 };
@@ -81,8 +90,9 @@ const flush = async () => {
         return `(src = '${item.src}' AND dest = '${item.dest}')`;
       })
       .join(" OR \n");
-    console.log("missing", missing, smap, dmap);
+    // console.log("missing", missing, smap, dmap);
     db.run(`DELETE FROM dlink WHERE ${sqllist};`);
+    db.run(`DELETE FROM rule WHERE ${sqllist};`);
   }
 };
 
@@ -119,7 +129,7 @@ const dlink = async (req: Request) => {
     db.run(`
     INSERT OR REPLACE INTO dlink (src, dest) VALUES ('${pair.src}', '${pair.dest}')
     `);
-    return Response.json({ code: 200, message: "OK", data: [] });
+    return Response.json({ code: 200, message: "OK" });
   }
 };
 
@@ -136,6 +146,37 @@ const uplink = async (req: Request) => {
     '${info.dest.value}',
     '${info.dest.dir ? 1 : 0}'
     );`);
+
+  return Response.json({ code: 200, message: "OK" });
+};
+
+const rule = async (req: Request) => {
+  if (/query/i.test(req.url)) {
+    const ruleset = await req.json<{
+      src: string;
+      dest: string;
+    }>();
+    const list = db
+      .query(
+        `SELECT * from rule WHERE (src = '${ruleset.src}' AND dest = '${ruleset.dest}')`
+      )
+      .all();
+
+    return Response.json({ code: 200, message: "OK", data: list[0] });
+  } else {
+    const ruleset = await req.json<{
+      src: string;
+      dest: string;
+      input: string;
+      output: string;
+    }>();
+    db.run(`
+    INSERT OR REPLACE INTO rule (src, dest, input, output) VALUES ('${
+      ruleset.src
+    }', '${ruleset.dest}', '${ruleset.input || ""}', '${ruleset.output || ""}')
+    `);
+    return Response.json({ code: 200, message: "OK" });
+  }
 };
 
 export const matcher = [
@@ -162,5 +203,13 @@ export const matcher = [
   {
     path: "/uplink",
     handler: uplink,
+  },
+  {
+    path: "/rule/query",
+    handler: rule,
+  },
+  {
+    path: "/rule",
+    handler: rule,
   },
 ];
