@@ -1,11 +1,62 @@
 import fs from "fs";
 import path from "path";
+import { globSync } from "glob";
 import { db } from "./db";
 
 type Link = {
   parent: string;
   value: string;
   dir: boolean;
+};
+
+const ll = (dir: string) => {
+  const cmd = `${dir}/**/*.{mkv,mp4}`;
+  const output = globSync(cmd);
+  // 先排序， 这样就可以根据 reduce 顺序处理三级目录
+  // 1. 根目录在最前 M1,M2
+  // 2. 二级目录紧随其后 M1/S01, M1/S02
+  // 3. 三级目录就按照2处理, 文件就不递归了
+
+  output.sort((a, b) => {
+    return a.length - b.length;
+  });
+
+  const getParent = (x: string) => {
+    const segs = x.split("/") || "";
+    return segs[segs.length - 1] || "";
+  };
+  const tree = output.reduce((m, i) => {
+    const isDir = /mkv|mp4/.test(i);
+    const p = getParent(i);
+    if (isDir) {
+      m[i] = {
+        value: i,
+        parent: p,
+        dir: isDir,
+      };
+    } else {
+      m[p].children = m[p].children || [];
+      m[p].children?.push({
+        value: i,
+        parent: p,
+        dir: isDir,
+      });
+    }
+
+    return m;
+  }, {} as Record<string, Link & { children?: Link[] }>);
+  return tree;
+};
+
+const lltree = (tree: Record<string, Link & { children?: Link[] }>) => {
+  const list: Link[] = [];
+  Object.keys(tree).forEach((dir) => {
+    list.push(tree[dir]);
+    if (tree[dir].children) {
+      list.push(...tree[dir].children!);
+    }
+  });
+  return list;
 };
 
 const tree = (root: string, parent: string, list: Link[] = []) => {
@@ -98,8 +149,8 @@ const flush = async () => {
 
 const fssync = async (req: Request) => {
   const conf = getConf();
-  await sync("src", tree(conf.srcroot, conf.srcroot));
-  await sync("dest", tree(conf.destroot, conf.destroot));
+  await sync("src", lltree(ll(conf.srcroot)));
+  await sync("dest", lltree(ll(conf.destroot)));
   await flush();
   return Response.json({ code: 200, message: "OK" });
 };
