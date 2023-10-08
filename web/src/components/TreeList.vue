@@ -13,12 +13,16 @@
 </template>
 
 <script setup lang="ts">
-import { computed, h, onMounted, watch, ref } from "vue";
+import { computed, h, onMounted, defineProps, watch, ref } from "vue";
 import { Link, buildTree } from "../shared";
 import Node from "../components/Node.vue";
 
 const src = ref<SLink[]>([]);
 const dest = ref<SLink[]>([]);
+const props = defineProps<{
+  srcroot: string;
+  destroot: string;
+}>();
 const dlink = ref<
   { src: string; dest: string; reg_src?: string; reg_dest?: string }[]
 >([]);
@@ -51,8 +55,8 @@ const each = <T extends NodeLike>(list: T[], cb: (item: T) => void) => {
 };
 
 const merge = (s: SLink[], d: SLink[]) => {
-  const stree = buildTree(s);
-  const dtree = buildTree(d);
+  const stree = buildTree(props.srcroot, s);
+  const dtree = buildTree(props.destroot, d);
   const root = stree.root;
   const dmap = dlink.value.reduce((m, x) => {
     m[x.src] = x.dest;

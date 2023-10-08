@@ -10,7 +10,9 @@ type Link = {
 };
 
 const ll = (dir: string) => {
-  const cmd = `${dir}/**/*.{mkv,mp4}`;
+  const simple = (x: string) =>
+    (x ? x + "/" : x).replace(/\/+/g, "/").replace(/\/$/, "");
+  const cmd = `${dir}/**/*.{txt,mp4}`;
   const output = globSync(cmd);
   // 先排序， 这样就可以根据 reduce 顺序处理三级目录
   // 1. 根目录在最前 M1,M2
@@ -23,29 +25,58 @@ const ll = (dir: string) => {
 
   const getParent = (x: string) => {
     const segs = x.split("/") || "";
-    return segs[segs.length - 1] || "";
+    segs.pop();
+    return simple(segs.join("/"));
   };
-  const tree = output.reduce((m, i) => {
-    const isDir = /mkv|mp4/.test(i);
-    const p = getParent(i);
-    if (isDir) {
-      m[i] = {
-        value: i,
+  const fill = (x: string) => {
+    const suffix = x.replace(dir, "");
+    const segs = suffix.split("/");
+    return [...segs].reduceRight((mm, _, i) => {
+      const v = simple([dir + "/", ...segs].join("/"));
+      segs.pop();
+      const p = simple([dir + "/", ...segs].join("/"));
+      if (v === dir) return mm;
+      mm[v] = {
+        value: v,
         parent: p,
-        dir: isDir,
+        dir: true,
       };
-    } else {
+      return mm;
+    }, {} as Record<string, Link>);
+  };
+
+  let parents = {};
+  let tree = output.reduce((m, i) => {
+    const p = getParent(i);
+    if (m[p]) {
       m[p].children = m[p].children || [];
       m[p].children?.push({
         value: i,
         parent: p,
-        dir: isDir,
+        dir: false,
       });
+    } else {
+      m[p] = {
+        value: simple(p),
+        parent: getParent(p),
+        dir: true,
+        children: [
+          {
+            value: i,
+            parent: simple(p),
+            dir: false,
+          },
+        ],
+      };
     }
-
+    parents = {
+      ...parents,
+      ...fill(p),
+    };
     return m;
   }, {} as Record<string, Link & { children?: Link[] }>);
-  return tree;
+
+  return { ...parents, ...tree };
 };
 
 const lltree = (tree: Record<string, Link & { children?: Link[] }>) => {

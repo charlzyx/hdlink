@@ -6,7 +6,7 @@ export type Link = {
   children?: Link[];
 };
 
-export const buildTree = (list: Omit<Link, "link">[]) => {
+export const buildTree = (droot: string, list: Omit<Link, "link">[]) => {
   // 先排序， 这样就可以根据 reduce 顺序处理三级目录
   // 1. 根目录在最前 M1,M2
   // 2. 二级目录紧随其后 M1/S01, M1/S02
@@ -21,7 +21,7 @@ export const buildTree = (list: Omit<Link, "link">[]) => {
 
   const tree = clone.reduce(
     (t, node) => {
-      if (node.parent === "") {
+      if (node.parent === droot) {
         const fine = {
           ...node,
           children: [],
@@ -35,7 +35,7 @@ export const buildTree = (list: Omit<Link, "link">[]) => {
         if (fine.dir) {
           fine.children = [];
         }
-        parent.children.push(fine);
+        parent?.children?.push?.(fine);
         // ref
         t.map[node.value] = fine;
       }
