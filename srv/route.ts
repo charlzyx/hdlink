@@ -12,7 +12,7 @@ type Link = {
 const ll = (dir: string) => {
   const simple = (x: string) =>
     (x ? x + "/" : x).replace(/\/+/g, "/").replace(/\/$/, "");
-  const cmd = `${dir}/**/*.{txt,mp4}`;
+  const cmd = `${dir}/**/*.{mkv,mp4}`;
   const output = globSync(cmd);
   // 先排序， 这样就可以根据 reduce 顺序处理三级目录
   // 1. 根目录在最前 M1,M2
@@ -22,6 +22,9 @@ const ll = (dir: string) => {
   output.sort((a, b) => {
     return a.length - b.length;
   });
+  console.log('-----------------------------------');
+  console.log(output);
+  console.log('-----------------------------------');
 
   const getParent = (x: string) => {
     const segs = x.split("/") || "";
@@ -82,7 +85,10 @@ const ll = (dir: string) => {
 const lltree = (tree: Record<string, Link & { children?: Link[] }>) => {
   const list: Link[] = [];
   Object.keys(tree).forEach((dir) => {
-    list.push(tree[dir]);
+    const clone = JSON.parse(JSON.stringify(tree[dir]));
+    delete clone.children;
+
+    list.push(clone);
     if (tree[dir].children) {
       list.push(...tree[dir].children!);
     }
@@ -131,9 +137,38 @@ const list = async (req: Request) => {
   return Response.json({ code: 200, message: "OK", list });
 };
 
-const sync = async (table: "src" | "dest", list: Link[]) => {
-  if (list.length == 0) return;
+const uniq = (list: Link[]) => {
+        const map = list.reduce((m, i) => {
+                m[i.value] = i;
+                return m;
+        }, {});
+        return Object.values(map)
+}
+
+const sync = async (table: "src" | "dest", llist: Link[]) => {
+  if (llist.length == 0) return;
+ //  console.log('--list', list);
+  const list = uniq(llist);
   db.run(` DELETE FROM ${table}`);
+  /**
+  let last = '';
+  list.map((item) => {
+          const sql  = `
+          INSERT INTO ${table} (parent, value, dir) VALUES
+          (${[item.parent, item.value, item.dir ? 1 : 0]
+           .map((i) => (typeof i === "number" ? i : `"${i}"`))
+           .join(",")})`;
+
+           try {
+                   db.run(sql);
+                   last = sql;
+           } catch (e) {
+                   console.log("errat sql: \n" + sql +"\n"+ e + "\nlast ok is: \n" + last);
+                   throw e;
+           }
+
+  });
+  */
 
   const sql = `
     INSERT INTO ${table} (parent, value, dir)
@@ -141,7 +176,7 @@ const sync = async (table: "src" | "dest", list: Link[]) => {
     ${list
       .map((item) => {
         return `(${[item.parent, item.value, item.dir ? 1 : 0]
-          .map((i) => (typeof i === "number" ? i : `'${i}'`))
+          .map((i) => (typeof i === "number" ? i : `"${i}"`))
           .join(",")})`;
       })
       .join(",\n")}
@@ -169,7 +204,7 @@ const flush = async () => {
   if (missing.length > 0) {
     const sqllist = missing
       .map((item) => {
-        return `(src = '${item.src}' AND dest = '${item.dest}')`;
+        return `(src = "${item.src}" AND dest = "${item.dest}")`;
       })
       .join(" OR \n");
     // console.log("missing", missing, smap, dmap);
@@ -194,7 +229,7 @@ const conf = async (req: Request) => {
     const r = await req.json<{ srcroot: string; destroot: string }>();
     db.run(`DELETE FROM conf;`);
     const sql = `
-    INSERT INTO conf (srcroot, destroot) VALUES ('${r.srcroot}', '${r.destroot}');`;
+    INSERT INTO conf (srcroot, destroot) VALUES ("${r.srcroot}", "${r.destroot}");`;
 
     db.run(sql);
     const now = db.query("SELECT * from conf").all();
@@ -209,7 +244,7 @@ const dlink = async (req: Request) => {
   } else {
     const pair = await req.json<{ src: string; dest: string }>();
     db.run(`
-    INSERT OR REPLACE INTO dlink (src, dest) VALUES ('${pair.src}', '${pair.dest}')
+    INSERT OR REPLACE INTO dlink (src, dest) VALUES ("${pair.src}", "${pair.dest}")
     `);
     return Response.json({ code: 200, message: "OK" });
   }
@@ -218,15 +253,15 @@ const dlink = async (req: Request) => {
 const uplink = async (req: Request) => {
   const info = await req.json<{ src: string; dest: Link }>();
   db.run(`
-  INSERT OR REPLACE INTO dlink (src, dest) VALUES ('${info.src}', '${info.dest.value}')
+  INSERT OR REPLACE INTO dlink (src, dest) VALUES ("${info.src}", "${info.dest.value}")
   `);
   db.run(`
   INSERT OR REPLACE INTO dest (parent, value, dir)
   VALUES
   (
-    '${info.dest.parent}',
-    '${info.dest.value}',
-    '${info.dest.dir ? 1 : 0}'
+    "${info.dest.parent}",
+    "${info.dest.value}",
+    "${info.dest.dir ? 1 : 0}"
     );`);
 
   return Response.json({ code: 200, message: "OK" });
@@ -240,7 +275,7 @@ const rule = async (req: Request) => {
     }>();
     const list = db
       .query(
-        `SELECT * from rule WHERE (src = '${ruleset.src}' AND dest = '${ruleset.dest}')`
+        `SELECT * from rule WHERE (src = "${ruleset.src}" AND dest = "${ruleset.dest}")`
       )
       .all();
 
@@ -253,9 +288,9 @@ const rule = async (req: Request) => {
       output: string;
     }>();
     db.run(`
-    INSERT OR REPLACE INTO rule (src, dest, input, output) VALUES ('${
+    INSERT OR REPLACE INTO rule (src, dest, input, output) VALUES ("${
       ruleset.src
-    }', '${ruleset.dest}', '${ruleset.input || ""}', '${ruleset.output || ""}')
+    }", "${ruleset.dest}", "${ruleset.input || ""}", "${ruleset.output || ""}")
     `);
     return Response.json({ code: 200, message: "OK" });
   }
